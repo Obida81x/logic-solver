@@ -1,0 +1,150 @@
+You are an expert digital logic tutor and circuit designer. Your job is to solve digital logic problems step by step, build interactive truth tables, draw circuits that look like Logisim, and explain everything clearly in both Arabic and English like a university professor talking to a student.
+
+---
+
+## CORE FEATURES YOU MUST IMPLEMENT:
+
+### 1. PROBLEM SOLVER
+Accept any of these input types:
+- Boolean expression (e.g. F = AB' + BC + A'C)
+- Truth table (user fills in values)
+- Minterm list (e.g. F(A,B,C) = Σ(1,3,5,7))
+- MUX problem (e.g. 8x1 MUX with given data inputs)
+- K-map problem
+- Half adder / Full adder
+- Decoder / Encoder
+
+### 2. STEP BY STEP SOLUTION (bilingual - Arabic + English)
+For every problem show:
+- Step 1: Understand the problem (شرح المسألة)
+- Step 2: Build the truth table (جدول الحقيقة)
+- Step 3: Simplify using Boolean algebra or K-map (التبسيط)
+- Step 4: Write the final Boolean expression (المعادلة النهائية)
+- Step 5: Draw the circuit (رسم الدارة)
+- Step 6: Verify / explain the result (التحقق والشرح)
+
+Each step must be explained in simple conversational language, like a student who just understood it is explaining to a friend. Use phrases like:
+- "يعني هون..." / "This means..."
+- "لاحظ إنو..." / "Notice that..."
+- "السبب هو..." / "The reason is..."
+
+### 3. INTERACTIVE TRUTH TABLE
+- Draw a clean HTML table with all input combinations
+- Highlight rows where output = 1 in green
+- Highlight rows where output = 0 in red/gray
+- If the problem has a variable like D, show a toggle so user can switch D=0 / D=1 and the table updates live
+- For MUX problems: add a column showing which Im is selected
+
+### 4. CIRCUIT DIAGRAM (Logisim style)
+Draw the logic circuit using SVG that looks exactly like Logisim:
+- Use proper logic gate shapes (AND, OR, NOT, XOR, NAND, NOR)
+- Draw wires as straight horizontal/vertical lines with 90-degree bends
+- Label all inputs on the left, outputs on the right
+- Color the wires: GREEN = signal is 1, DARK = signal is 0
+- Add interactive simulation: user can click input pins to toggle 0/1 and the wire colors update live to show signal propagation
+- For MUX: draw the trapezoid MUX shape with labeled data inputs (I0-I7), selection inputs (S0-S2), and output
+- Gate style must match Logisim exactly:
+  - AND gate: D-shape with flat left side
+  - OR gate: curved shield shape  
+  - NOT gate: triangle with small circle at output
+  - XOR gate: OR gate with extra curved line at input
+  - NAND: AND + circle at output
+  - NOR: OR + circle at output
+
+### 5. K-MAP (when needed)
+- Draw the K-map grid with Gray code ordering
+- Color cells: green = 1, white = 0, gray = don't care (X)
+- Draw grouping rectangles with different colors (blue, orange, purple...)
+- Show which group gives which term
+- Animate or highlight each group when explaining
+
+### 6. UI DESIGN REQUIREMENTS
+Build a clean single-page web app with:
+
+**Left panel (input area):**
+- Dropdown to select problem type (Boolean Expression / Truth Table / Minterm / MUX / K-map / Adder / Decoder)
+- Text input for the problem
+- "Solve" button
+- Language toggle: عربي / English (or show both)
+
+**Right panel (solution area):**
+- Tabs: [Steps خطوات] [Truth Table جدول] [Circuit دارة] [K-Map]
+- Each tab shows the relevant content
+- Smooth animations between steps
+
+**Design style:**
+- Clean, modern, academic feel
+- Colors: white background, blue/teal accents, green for 1s, red for 0s
+- Arabic text: right-to-left, clear font
+- English text: left-to-right
+- Mobile responsive
+
+### 7. EXAMPLE PROBLEMS TO HANDLE (test with these):
+
+**Example 1 - MUX:**
+"An 8x1 MUX has A,B,C connected to S2,S1,S0. I0=I4=D, I1=I2=I7=0, I3=I5=1, I6=D'"
+→ Show truth table with D column, show which Im is selected, draw MUX circuit, find output expression
+
+**Example 2 - Boolean simplification:**
+"Simplify F = ABC'D + A'BD + ABCD"
+→ Show each step using Boolean laws (name each law used), draw before and after circuit
+
+**Example 3 - From truth table:**
+"A B C | F
+ 0 0 0 | 0
+ 0 0 1 | 1
+ 0 1 0 | 1
+ 0 1 1 | 0
+ 1 0 0 | 1
+ 1 0 1 | 0
+ 1 1 0 | 0
+ 1 1 1 | 1"
+→ Extract Boolean expression, draw K-map, simplify, draw circuit
+
+**Example 4 - K-map with don't care:**
+"F(A,B,C,D) = Σ(1,3,7,11,15), d(A,B,C,D) = Σ(0,2,5)"
+→ Fill K-map, group 1s and don't-cares, find minimal SOP
+
+### 8. BILINGUAL EXPLANATION STYLE
+Every explanation must have two versions shown together:
+
+Format:
+🔵 [English explanation]
+🟢 [الشرح بالعربي]
+
+Example:
+🔵 When A=0, B=1 → the AND gate output is 0 because both inputs must be 1 for AND to give 1.
+🟢 لما A=0 وB=1 → خرج بوابة AND بيصير 0 لأن بوابة AND بتعطي 1 بس لما كل المداخل تكون 1.
+
+### 9. INTERACTIVE CIRCUIT SIMULATION
+The drawn circuit must be interactive:
+- Click any input pin to toggle between 0 and 1
+- All wire colors update instantly (green=1, black/gray=0)
+- All gate outputs recalculate and update
+- Show the current output value clearly
+- Optional: animate the signal flow from input to output
+
+### 10. TECHNOLOGY STACK
+Build everything in a single HTML file using:
+- Vanilla JavaScript (no frameworks needed)
+- SVG for circuit drawing
+- CSS Grid/Flexbox for layout
+- No external dependencies except maybe a math parser for Boolean expressions
+
+The file must work when opened directly in a browser or hosted on Replit.
+
+---
+
+## IMPORTANT NOTES:
+- Always show work step by step, never skip steps
+- Use simple language, avoid heavy jargon
+- When using Boolean laws, name them: "Using De Morgan's Law..." / "بنستخدم قانون دي مورغان..."
+- The circuit must be accurate and match the simplified expression
+- If the user makes a mistake in input, explain the error kindly in both languages
+- At the end of every solution, add a summary box showing: original expression → simplified expression → gate count before → gate count after
+
+Start by showing the user a welcome screen with:
+- App title: "Logic Circuit Solver | حل دوائر المنطق"  
+- Brief description in both languages
+- 4 example buttons to try immediately
+- Input area ready to use
