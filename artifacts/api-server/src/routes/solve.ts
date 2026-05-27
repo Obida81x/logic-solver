@@ -1,7 +1,13 @@
 import { Router } from "express";
-import { openai } from "@workspace/integrations-openai-ai-server";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const router = Router();
+
+function getGemini() {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("GEMINI_API_KEY is not set.");
+  return new GoogleGenerativeAI(key).getGenerativeModel({ model: "gemini-2.0-flash" });
+}
 
 const SYSTEM_PROMPT = `You are an expert digital logic professor and circuit designer. Your job is to analyze logic design problems written in natural language, solve them completely, and explain every step in both English AND Arabic.
 
@@ -77,19 +83,13 @@ router.post("/solve", async (req, res) => {
       return;
     }
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-5.4",
-      max_completion_tokens: 8192,
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: `Solve this digital logic problem completely. Respond with JSON only:\n\n${problem.trim()}`,
-        },
-      ],
-    });
+    const model = getGemini();
+    const result = await model.generateContent([
+      { text: SYSTEM_PROMPT },
+      { text: `Solve this digital logic problem completely. Respond with JSON only:\n\n${problem.trim()}` },
+    ]);
 
-    const raw = completion.choices[0]?.message?.content ?? "";
+    const raw = result.response.text();
 
     let parsed;
     try {
@@ -99,7 +99,7 @@ router.post("/solve", async (req, res) => {
       if (jsonMatch) {
         parsed = JSON.parse(jsonMatch[0]);
       } else {
-        req.log.error({ raw }, "Failed to parse OpenAI response as JSON");
+        req.log.error({ raw }, "Failed to parse Gemini response as JSON");
         res.status(500).json({ error: "Failed to parse AI response. Please try again." });
         return;
       }
