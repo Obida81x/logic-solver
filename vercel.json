@@ -1,6 +1,6 @@
 {
-  "buildCommand": "pnpm install --frozen-lockfile && pnpm -w run typecheck:libs && pnpm --filter @workspace/logic-solver run build",
-  "outputDirectory": "artifacts/logic-solver/dist/public",
+  "buildCommand": "pnpm install --frozen-lockfile && pnpm -w run typecheck:libs && pnpm --filter @workspace/logic-solver run build && cp -r artifacts/logic-solver/dist/public ./public",
+  "outputDirectory": "public",
   "installCommand": "pnpm install --frozen-lockfile",
   "framework": null,
   "rewrites": [
