@@ -1,20 +1,13 @@
 import { Router } from "express";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const router = Router();
-
-function getGemini() {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new Error("GEMINI_API_KEY is not set.");
-  return new GoogleGenerativeAI(key).getGenerativeModel({ model: "gemini-2.0-flash" });
-}
 
 const SYSTEM_PROMPT = `You are an expert digital logic professor and circuit designer. Your job is to analyze logic design problems written in natural language, solve them completely, and explain every step in both English AND Arabic.
 
 You MUST respond with a valid JSON object (no markdown, no code blocks, just raw JSON) following this exact structure:
 
 {
-  "problemType": "boolean" | "mux" | "kmap" | "halfadder" | "fulladder" | "decoder" | "minterms",
+  "problemType": "boolean",
   "title": "Short problem title in English",
   "titleAr": "عنوان المسألة بالعربي",
   "variables": ["A", "B", "C"],
@@ -27,12 +20,12 @@ You MUST respond with a valid JSON object (no markdown, no code blocks, just raw
       "number": 1,
       "title": "Understand the Problem",
       "titleAr": "فهم المسألة",
-      "content": "English explanation of this step — conversational, like explaining to a friend. Use 'Notice that...', 'This means...'",
+      "content": "English explanation — conversational. Use 'Notice that...', 'This means...'",
       "contentAr": "الشرح بالعربي — بأسلوب بسيط. استخدم 'يعني هون...', 'لاحظ إنو...'"
     }
   ],
   "truthTable": [
-    { "inputs": {"A": 0, "B": 0, "C": 0}, "output": 0, "mintermIndex": 0, "notes": "" }
+    { "inputs": {"A": 0, "B": 0, "C": 0}, "output": 0, "mintermIndex": 0 }
   ],
   "simplificationSteps": [
     {
@@ -40,7 +33,7 @@ You MUST respond with a valid JSON object (no markdown, no code blocks, just raw
       "lawNameAr": "قانون الضم",
       "before": "ABD + A'BD",
       "after": "BD",
-      "explanation": "Combined ABD and A'BD — since A + A' = 1, we eliminate A.",
+      "explanation": "Combined ABD and A'BD — A + A' = 1, so A is eliminated.",
       "explanationAr": "ضمنا ABD و A'BD — لأن A + A' = 1 فنحذف A."
     }
   ],
@@ -49,7 +42,7 @@ You MUST respond with a valid JSON object (no markdown, no code blocks, just raw
   "muxDetails": null
 }
 
-For MUX problems, populate "muxDetails":
+For MUX problems set muxDetails:
 {
   "muxDetails": {
     "size": "8x1",
@@ -64,15 +57,13 @@ For MUX problems, populate "muxDetails":
 }
 
 RULES:
-1. Always include ALL 6 steps (Understand, Truth Table, Simplification, Expression, Circuit description, Summary)
-2. Truth table must include ALL 2^n rows for n variables
-3. Simplification steps must name the Boolean law used (Uniting Law, De Morgan's, Absorption Law, Distribution Law, etc.)
-4. Arabic explanations must be natural Syrian/Palestinian university-student Arabic dialect, not formal
-5. For MUX: clearly show which Im is selected for each input combination, and the output for D=0 and D=1
-6. The "expression" field must be the FULLY SIMPLIFIED minimal SOP expression
-7. Cost criteria: count gates (AND/OR/NOT = 1 each), literals (variables in the unsimplified form), input cost (sum of all gate inputs)
-8. NEVER include markdown formatting, code blocks, or explanation outside the JSON
-9. The response must be parseable by JSON.parse() directly`;
+1. Always include ALL 6 steps (Understand, Truth Table, Simplification, Expression, Circuit, Summary)
+2. Truth table must include ALL 2^n rows
+3. Name the Boolean law in each simplification step
+4. Arabic must be natural university-student dialect (Syrian/Palestinian)
+5. "expression" must be the FULLY SIMPLIFIED minimal SOP expression
+6. NEVER include markdown or code blocks — raw JSON only
+7. Response must be parseable by JSON.parse() directly`;
 
 router.post("/solve", async (req, res) => {
   try {
@@ -83,13 +74,37 @@ router.post("/solve", async (req, res) => {
       return;
     }
 
-    const model = getGemini();
-    const result = await model.generateContent([
-      { text: SYSTEM_PROMPT },
-      { text: `Solve this digital logic problem completely. Respond with JSON only:\n\n${problem.trim()}` },
-    ]);
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      res.status(500).json({ error: "GROQ_API_KEY is not configured." });
+      return;
+    }
 
-    const raw = result.response.text();
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        max_tokens: 8192,
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: `Solve this digital logic problem. Respond with JSON only:\n\n${problem.trim()}` },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      req.log.error({ status: response.status, errText }, "Groq API error");
+      res.status(500).json({ error: "AI service error. Please try again." });
+      return;
+    }
+
+    const data = await response.json() as { choices: { message: { content: string } }[] };
+    const raw = data.choices[0]?.message?.content ?? "";
 
     let parsed;
     try {
@@ -99,7 +114,7 @@ router.post("/solve", async (req, res) => {
       if (jsonMatch) {
         parsed = JSON.parse(jsonMatch[0]);
       } else {
-        req.log.error({ raw }, "Failed to parse Gemini response as JSON");
+        req.log.error({ raw }, "Failed to parse Groq response as JSON");
         res.status(500).json({ error: "Failed to parse AI response. Please try again." });
         return;
       }
